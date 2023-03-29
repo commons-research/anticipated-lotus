@@ -37,7 +37,6 @@ prob_Lotus = compute_prob_L(x, gamma, delta, P_m, Q_s)
 lotus = simulate_lotus(prob_Lotus)
 
 
-
 ## DONE simulate \epsilson_c from multivariate normal distribution with mean = 0 and cov epsilon 
 ## DONE Once we have epsilon_c and our sum of mus, we have the probability of X. We can draw X with a Bernoulli varaibles and we get our data X. 
 ## DONE we can simulate the number of papers with a Poisson distribution --> 1+ Poisson
