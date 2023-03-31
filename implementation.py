@@ -10,7 +10,7 @@ import utils.MCMC
 
 #initialize size of simulated data
 T = ['m', 's']
-n_t = [10, 10]
+n_t = [100, 10]
 assert len(T)==len(n_t)
 
 #simulate priors
@@ -29,14 +29,15 @@ prob_x = compute_prob_X(sum_mu, epsilon_c, n_t)
 x = simulate_X(prob_x)
 
 #get probability of Lotus and simulate Lotus
-prob_Lotus, gamma, delta = compute_prob_L(x)
-lotus_binary, lotus_n_papers = simulate_lotus(prob_Lotus)
+prob_Lotus, n_papers, gamma, delta = compute_prob_L(x)
+lotus_binary, lotus_n_papers = simulate_lotus(prob_Lotus, n_papers)
 
 # Run the MCMC chain
 n_iter = 100000
 gamma_init = 1
 delta_init = 1
 print("Running MCMC")
+#print("ATTENTION with lotus_binary ! ")
 samples, accept_gamma, accept_delta = utils.MCMC.run_mcmc(lotus_n_papers, n_iter, gamma_init, delta_init)
 
 burn_in = int(0.5 * n_iter)  # Remove the first 50% of the samples
@@ -58,9 +59,18 @@ fig, axs = plt.subplots(ncols=2)
 sns.scatterplot(x=range(len(post_burn_in_samples)),
                 y = post_burn_in_samples[:,0],
                 ax=axs[0]).set_title(f'True gamma : {gamma}')
+sns.lineplot(x=range(len(post_burn_in_samples)),
+             y=[float(gamma) for i in range(len(post_burn_in_samples[:,0]))],
+             ax=axs[0],
+             color='r')
+
 sns.scatterplot(x=range(len(post_burn_in_samples)),
                 y=post_burn_in_samples[:,1],
                 ax=axs[1]).set_title(f'True delta : {delta}')
+sns.lineplot(x=range(len(post_burn_in_samples)),
+             y=[float(delta) for i in range(len(post_burn_in_samples[:,1]))],
+             ax=axs[1],
+             color='r')
 plt.show()
 
 ## DONE simulate \epsilson_c from multivariate normal distribution with mean = 0 and cov epsilon 
