@@ -1,30 +1,37 @@
 import numpy as np
 from scipy.stats import gamma
 
-def compute_P_Lotus_given_research_effort(lotus_n_papers, gamma, delta):
+
+def log_likelihood(lotus_n_papers, gamma, delta):
     P_m = np.sum(lotus_n_papers, axis=1)
     Q_s = np.sum(lotus_n_papers, axis=0)
     clipped_exponent = np.clip(-gamma * P_m[:, None] - delta * Q_s[None, :], -50, 50)
-    total_research_effort = 1 - np.exp(clipped_exponent * np.power(np.inf, lotus_n_papers), dtype="float32")
-    #total_research_effort = 1 - np.exp(-gamma * P_m[:, None] - delta * Q_s[None, :], dtype="float32")
+    total_research_effort = 1 - np.exp(clipped_exponent, dtype="float32")
     
-    ##put proba to 1 if it has already been found
-    #found_in_Lotus = np.where(lotus_n_papers != 0)
-    #total_research_effort[found_in_Lotus] = 1.0
+    #if L >= 1 the we have the proba = R_ms, and if L=0, then we have to sum out the two possible
+    # cases where either x = 0 or x = 1. If x = 0 the P(L=0)=1 and if x=1 then P(L=0) = 1-R_ms
+    # we thus have P(L=1|R_ms) = R_ms  and P(L=0|R_ms) = 1 + 1 - R_ms
     
-    return total_research_effort
+    likelihood = np.where(lotus_n_papers == 0, 1+1-total_research_effort, total_research_effort)
+    log_likelihood = np.sum(np.log(likelihood + 1e-12))
+    return log_likelihood
+    
+#def compute_P_Lotus_given_research_effort(lotus_n_papers, gamma, delta):
+#    P_m = np.sum(lotus_n_papers, axis=1)
+#    Q_s = np.sum(lotus_n_papers, axis=0)
+#    clipped_exponent = np.clip(-gamma * P_m[:, None] - delta * Q_s[None, :], -50, 50)
+#    total_research_effort = 1 - np.exp(clipped_exponent, dtype="float32")
+#    prob_L = np.where(lotus_n_papers == 0, 1-total_research_effort, total_research_effort)
+#    
+#    return prob_L
+#
+#def log_likelihood(lotus_n_papers, gamma, delta):
+#    prob_Lotus = compute_P_Lotus_given_research_effort(lotus_n_papers, gamma, delta)
+#    log_likelihood = np.sum(np.log(prob_Lotus + 1e-12))
+#    #log_likelihood = np.sum(np.log(prob_Lotus + 1e-10)) + np.sum(np.log(1 - prob_Lotus + 1e-10))
+#    return log_likelihood 
 
-def log_likelihood(lotus_n_papers, gamma, delta):
-    prob_Lotus = compute_P_Lotus_given_research_effort(lotus_n_papers, gamma, delta)
-    #log_likelihood = np.sum(np.log(prob_Lotus + 1e-10))
-    log_likelihood = np.sum(np.log(prob_Lotus + 1e-10)) + np.sum(np.log(1 - prob_Lotus + 1e-10))
-    return log_likelihood 
-
-#def log_prior(gamma, delta):
-#    return -gamma - 0.1 * delta
-#def log_prior(gamma_param, delta, shape=0.1, scale=1):
-#    return gamma.logpdf(gamma_param, a=shape, scale=scale) + gamma.logpdf(delta, a=shape, scale=scale)
-def log_prior(gamma, delta, gamma_min=0, gamma_max=1, delta_min=0, delta_max=1):
+def log_prior(gamma, delta, gamma_min=0, gamma_max=2, delta_min=0, delta_max=1.5):
     if gamma_min <= gamma <= gamma_max and delta_min <= delta <= delta_max:
         return 0
     else:
@@ -52,14 +59,14 @@ def metropolis_hastings_accept(lotus_n_papers, gamma, delta, gamma_new, delta_ne
     log_ratio = (new_log_likelihood + new_log_prior) - (curr_log_likelihood + curr_log_prior)
     return np.random.uniform() < np.exp(min(0, log_ratio))
 
-def run_mcmc(lotus_n_papers, n_iter, gamma_init, delta_init, target_acceptance_rate=(0.25, 0.35), check_interval=100):
+def run_mcmc(lotus_n_papers, n_iter, gamma_init, delta_init, target_acceptance_rate=(0.28, 0.35), check_interval=500):
     gamma, delta = gamma_init, delta_init
     samples = np.zeros((n_iter, 2))
 
     accept_gamma = 0
     accept_delta = 0
-    proposal_scale_gamma = 0.001
-    proposal_scale_delta = 0.0001
+    proposal_scale_gamma = 0.1
+    proposal_scale_delta = 0.1
 
     for i in range(n_iter):
         # Update gamma
@@ -85,20 +92,17 @@ def run_mcmc(lotus_n_papers, n_iter, gamma_init, delta_init, target_acceptance_r
                     target_acceptance_rate[0] <= acceptance_rate_delta <= target_acceptance_rate[1]):
                 # Adjust proposal_scale_gamma and proposal_scale_delta
                 if acceptance_rate_gamma < target_acceptance_rate[0]:
-                    proposal_scale_gamma *= 0.5
+                    proposal_scale_gamma *= 0.8
                 elif acceptance_rate_gamma > target_acceptance_rate[1]:
-                    proposal_scale_gamma *= 2
+                    proposal_scale_gamma *= 1.2
 
                 if acceptance_rate_delta < target_acceptance_rate[0]:
-                    proposal_scale_delta *= 0.5
+                    proposal_scale_delta *= 0.8
                 elif acceptance_rate_delta > target_acceptance_rate[1]:
-                    proposal_scale_delta *= 2
+                    proposal_scale_delta *= 1.2
 
-                # Reset acceptance counters
-                accept_gamma = 0
-                accept_delta = 0
-
-    acceptance_rate_gamma = accept_gamma / n_iter
-    acceptance_rate_delta = accept_delta / n_iter
+            # Reset acceptance counters
+            accept_gamma = 0
+            accept_delta = 0
 
     return samples, acceptance_rate_gamma, acceptance_rate_delta

@@ -37,7 +37,6 @@ n_iter = 100000
 gamma_init = 1
 delta_init = 1
 print("Running MCMC")
-#print("ATTENTION with lotus_binary ! ")
 samples, accept_gamma, accept_delta = utils.MCMC.run_mcmc(lotus_n_papers, n_iter, gamma_init, delta_init)
 
 burn_in = int(0.5 * n_iter)  # Remove the first 50% of the samples

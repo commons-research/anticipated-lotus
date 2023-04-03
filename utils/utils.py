@@ -56,14 +56,9 @@ def compute_prob_L(x):
     delta = np.random.exponential(scale=0.1, size=1)
     P_m = np.sum(n_papers, axis=1)
     Q_s = np.sum(n_papers, axis=0)
-    
-    prob_L = np.zeros(x.shape)
+
     R_ms = 1 - np.exp(-gamma * P_m[:, None] - delta * Q_s[None, :], dtype="float32")
-
-
-    prob_L[not_present_in_nature] = 0
-    
-    prob_L[present_in_x] = R_ms[present_in_x]
+    prob_L = np.where(x == 1, R_ms, 0)
     
     return prob_L.astype("float32"), n_papers.astype('float32'), gamma, delta
 
