@@ -2,7 +2,7 @@ import numpy as np
 import scipy.stats as stats
 import scipy.special
 import itertools
-
+np.random.seed(10)
 def simulate_from_prior(T, n_t) -> any:
     mu = {T[i]: np.random.normal(loc=0, scale=1, size=n_t[i]).astype("float32") for i in range(len(T))}
     
@@ -52,8 +52,8 @@ def compute_prob_L(x):
     n_papers[not_present_in_nature] = 0
 
     #generate gamma and delta, and calculate the 
-    gamma = np.random.exponential(scale=0.5, size=1)
-    delta = np.random.exponential(scale=0.1, size=1)
+    gamma = np.random.exponential(scale=0.1, size=1)
+    delta = np.random.exponential(scale=0.01, size=1)
     P_m = np.sum(n_papers, axis=1)
     Q_s = np.sum(n_papers, axis=0)
 

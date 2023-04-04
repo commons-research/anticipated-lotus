@@ -6,7 +6,8 @@ import pandas as pd
 #import personal packages
 import utils.sigma_utils as sigma_utils
 from utils.utils import *
-import utils.MCMC
+#from utils.MCMC import run_mcmc
+from utils.mcmc_cython import run_mcmc
 
 #initialize size of simulated data
 T = ['m', 's']
@@ -33,11 +34,12 @@ prob_Lotus, n_papers, gamma, delta = compute_prob_L(x)
 lotus_binary, lotus_n_papers = simulate_lotus(prob_Lotus, n_papers)
 
 # Run the MCMC chain
-n_iter = 100000
+n_iter = 1000000
 gamma_init = 1
 delta_init = 1
 print("Running MCMC")
-samples, accept_gamma, accept_delta = utils.MCMC.run_mcmc(lotus_n_papers, n_iter, gamma_init, delta_init)
+#samples, accept_gamma, accept_delta = utils.MCMC.run_mcmc(lotus_n_papers, x, n_iter, gamma_init, delta_init)
+samples, accept_gamma, accept_delta = run_mcmc(lotus_n_papers, x, n_iter, gamma_init, delta_init)
 
 burn_in = int(0.5 * n_iter)  # Remove the first 50% of the samples
 post_burn_in_samples = samples[burn_in:]
