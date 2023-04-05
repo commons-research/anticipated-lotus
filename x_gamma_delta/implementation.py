@@ -6,8 +6,8 @@ import pandas as pd
 #import personal packages
 import utils.sigma_utils as sigma_utils
 from utils.utils import *
-#from utils.MCMC import run_mcmc
-from utils.mcmc_cython import run_mcmc
+from utils.MCMC import run_mcmc_with_gibbs
+#from utils.mcmc_cython import run_mcmc
 
 #initialize size of simulated data
 T = ['m', 's']
@@ -34,12 +34,12 @@ prob_Lotus, n_papers, gamma, delta = compute_prob_L(x)
 lotus_binary, lotus_n_papers = simulate_lotus(prob_Lotus, n_papers)
 
 # Run the MCMC chain
-n_iter = 1000000
+n_iter = 10000
 gamma_init = 1
 delta_init = 1
+x_init = np.zeros_like(lotus_binary, dtype=np.float64)
 print("Running MCMC")
-#samples, accept_gamma, accept_delta = utils.MCMC.run_mcmc(lotus_n_papers, x, n_iter, gamma_init, delta_init)
-samples, accept_gamma, accept_delta = run_mcmc(lotus_n_papers, x, n_iter, gamma_init, delta_init)
+samples, x_samples, accept_gamma, accept_delta = run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter, gamma_init, delta_init, sum_mu.reshape(n_t), epsilon_c.reshape(n_t))
 
 burn_in = int(0.5 * n_iter)  # Remove the first 50% of the samples
 post_burn_in_samples = samples[burn_in:]
@@ -73,6 +73,7 @@ sns.lineplot(x=range(len(post_burn_in_samples)),
              ax=axs[1],
              color='r')
 plt.show()
+
 
 ## DONE simulate \epsilson_c from multivariate normal distribution with mean = 0 and cov epsilon 
 ## DONE Once we have epsilon_c and our sum of mus, we have the probability of X. We can draw X with a Bernoulli varaibles and we get our data X. 
