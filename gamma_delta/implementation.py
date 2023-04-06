@@ -34,7 +34,7 @@ prob_Lotus, n_papers, gamma, delta = compute_prob_L(x)
 lotus_binary, lotus_n_papers = simulate_lotus(prob_Lotus, n_papers)
 
 # Run the MCMC chain
-n_iter = 100000
+n_iter = 10000
 gamma_init = 1
 delta_init = 1
 print("Running MCMC")

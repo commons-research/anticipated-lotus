@@ -1,17 +1,25 @@
 import numpy as np
 import scipy.special 
 
-def gibbs_sample_x(mu, e):
-    # Compute the probability of x = 1 using the inverse logit function
+def gibbs_sample_x(lotus_n_papers, mu, e, gamma, delta):
+    #calculate prior
     p_x_1 = scipy.special.expit(mu + e)
+    p_x_0 = 1 - p_x_1
     
-    # Sample x from the conditional distribution
-    x = np.random.binomial(1, p_x_1)
+    #calculate likelihood of data given x
+    likelihood_x_0 = likelihood(lotus_n_papers, np.zeros_like(mu), gamma, delta)
+    likelihood_x_1 = likelihood(lotus_n_papers, np.ones(shape=mu.shape), gamma, delta)
     
-    return x
+    #compute likelihood times prior
+    numerator_0 = likelihood_x_0 * p_x_0
+    numerator_1 = likelihood_x_1 * p_x_1
 
-# Define a function that calculates the log likelihood of the LOTUS model
-def log_likelihood(lotus_n_papers, x, gamma, delta):
+    denominator = numerator_0 + numerator_1
+    
+    conditional_probability = numerator_1/denominator
+    return np.random.binomial(n=1, p=conditional_probability)
+
+def likelihood(lotus_n_papers, x, gamma, delta):
     # Calculate the total number of papers published per molecule
     P_m = np.sum(lotus_n_papers, axis=1)
     
@@ -22,7 +30,7 @@ def log_likelihood(lotus_n_papers, x, gamma, delta):
     clipped_exponent = np.clip(-gamma * P_m[:, None] - delta * Q_s[None, :], -50, 50)
     total_research_effort = 1 - np.exp(clipped_exponent, dtype="float32")
     
-    likelihood = np.zeros_like(total_research_effort)
+    likelihood_ = np.zeros_like(total_research_effort)
     
     #add the four conditions of our model
     x_0_L_0 = (lotus_n_papers == 0) & (x==0)
@@ -31,13 +39,19 @@ def log_likelihood(lotus_n_papers, x, gamma, delta):
     x_1_L_1 = (lotus_n_papers != 0) & (x!=0)
     
     #fullfil the four conditions
-    likelihood[x_0_L_0] = 1
+    likelihood_[x_0_L_0] = 1
     #likelihood[x_0_L_1] = 0
-    likelihood[x_1_L_0] = 1-total_research_effort[x_1_L_0]
-    likelihood[x_1_L_1] = total_research_effort[x_1_L_1]
+    likelihood_[x_1_L_0] = 1-total_research_effort[x_1_L_0]
+    likelihood_[x_1_L_1] = total_research_effort[x_1_L_1]
+    
+    return likelihood_
+
+# Define a function that calculates the log likelihood of the LOTUS model
+def log_likelihood(lotus_n_papers, x, gamma, delta):
+    likelihood_ = likelihood(lotus_n_papers, x, gamma, delta)
     
     # Calculate the likelihood of observing the data
-    log_likelihood = np.sum(np.log(likelihood + 1e-12))
+    log_likelihood = np.sum(np.log(likelihood_ + 1e-12))
     return log_likelihood
 
 # Define a function that calculates the log prior of the parameters gamma and delta
@@ -79,7 +93,8 @@ def metropolis_hastings_accept(lotus_n_papers, x, gamma, delta, gamma_new, delta
     return np.random.uniform() < np.exp(min(0, log_ratio))
 
 # Define a function that runs the Metropolis-Hastings MCMC algorithm
-def run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter, gamma_init, delta_init, mu, e, target_acceptance_rate=(0.25, 0.35), check_interval=500):
+def run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter, gamma_init, delta_init,
+                        mu, e, target_acceptance_rate=(0.25, 0.35), check_interval=500):
     gamma, delta, x = gamma_init, delta_init, x_init
     
     # Initialize the samples array to store gamma and delta values
@@ -107,7 +122,7 @@ def run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter, gamma_init, delta_init, 
             accept_delta += 1
         
         # Update x using Gibbs sampling
-        x = gibbs_sample_x(mu, e)
+        x = gibbs_sample_x(lotus_n_papers, mu, e, gamma, delta)
         
         # Store gamma and delta values in the samples array
         samples[i] = [gamma, delta]

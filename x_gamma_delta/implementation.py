@@ -7,7 +7,6 @@ import pandas as pd
 import utils.sigma_utils as sigma_utils
 from utils.utils import *
 from utils.MCMC import run_mcmc_with_gibbs
-#from utils.mcmc_cython import run_mcmc
 
 #initialize size of simulated data
 T = ['m', 's']
@@ -34,12 +33,15 @@ prob_Lotus, n_papers, gamma, delta = compute_prob_L(x)
 lotus_binary, lotus_n_papers = simulate_lotus(prob_Lotus, n_papers)
 
 # Run the MCMC chain
-n_iter = 10000
+n_iter = 100000
 gamma_init = 1
 delta_init = 1
 x_init = np.zeros_like(lotus_binary, dtype=np.float64)
 print("Running MCMC")
-samples, x_samples, accept_gamma, accept_delta = run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter, gamma_init, delta_init, sum_mu.reshape(n_t), epsilon_c.reshape(n_t))
+samples, x_samples, accept_gamma, accept_delta = run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter,
+                                                                     gamma_init, delta_init,
+                                                                     sum_mu.reshape(n_t),
+                                                                     epsilon_c.reshape(n_t))
 
 burn_in = int(0.5 * n_iter)  # Remove the first 50% of the samples
 post_burn_in_samples = samples[burn_in:]
@@ -55,24 +57,26 @@ print("Estimated delta: ",delta_posterior_mean)
 print("rate accept gamma : ", accept_gamma)
 print("rate accept delta : ", accept_delta)
 
-sns.set(style="darkgrid")
-fig, axs = plt.subplots(ncols=2)
-sns.scatterplot(x=range(len(post_burn_in_samples)),
-                y = post_burn_in_samples[:,0],
-                ax=axs[0]).set_title(f'True gamma : {gamma}')
-sns.lineplot(x=range(len(post_burn_in_samples)),
-             y=[float(gamma) for i in range(len(post_burn_in_samples[:,0]))],
-             ax=axs[0],
-             color='r')
+print(np.corrcoef(x.flatten(), x_samples[-1].flatten()))
 
-sns.scatterplot(x=range(len(post_burn_in_samples)),
-                y=post_burn_in_samples[:,1],
-                ax=axs[1]).set_title(f'True delta : {delta}')
-sns.lineplot(x=range(len(post_burn_in_samples)),
-             y=[float(delta) for i in range(len(post_burn_in_samples[:,1]))],
-             ax=axs[1],
-             color='r')
-plt.show()
+#sns.set(style="darkgrid")
+#fig, axs = plt.subplots(ncols=2)
+#sns.scatterplot(x=range(len(post_burn_in_samples)),
+#                y = post_burn_in_samples[:,0],
+#                ax=axs[0]).set_title(f'True gamma : {gamma}')
+#sns.lineplot(x=range(len(post_burn_in_samples)),
+#             y=[float(gamma) for i in range(len(post_burn_in_samples[:,0]))],
+#             ax=axs[0],
+#             color='r')
+#
+#sns.scatterplot(x=range(len(post_burn_in_samples)),
+#                y=post_burn_in_samples[:,1],
+#                ax=axs[1]).set_title(f'True delta : {delta}')
+#sns.lineplot(x=range(len(post_burn_in_samples)),
+#             y=[float(delta) for i in range(len(post_burn_in_samples[:,1]))],
+#             ax=axs[1],
+#             color='r')
+#plt.show()
 
 
 ## DONE simulate \epsilson_c from multivariate normal distribution with mean = 0 and cov epsilon 
