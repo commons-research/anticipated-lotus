@@ -1,10 +1,9 @@
 import numpy as np
 import itertools
-from numba import jit, prange, config, set_num_threads, get_num_threads
+from numba import jit, prange, config#, set_num_threads, get_num_threads
 config.THREADING_LAYER = 'threadsafe'
 from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
 import warnings
-
 warnings.simplefilter('ignore', category=NumbaDeprecationWarning)
 warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
 
@@ -23,7 +22,7 @@ def ravel_multi_index(coords, dims):
         idx += coords[i]
     return idx
 
-set_num_threads(config.NUMBA_DEFAULT_NUM_THREADS - 1)
+#set_num_threads(config.NUMBA_DEFAULT_NUM_THREADS - 1)
 @jit(nopython=True, parallel=True, cache=True)
 def sigma_numba(cov_matrices:list, matrix_dims: np.ndarray, index_list: np.ndarray) -> np.ndarray :
     summed_matrix_dim = np.prod(matrix_dims)
