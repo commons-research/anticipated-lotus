@@ -1,3 +1,5 @@
 .ipynb_checkpoints/*
 .DS_Store
 mu/utils/__pycache__/
+logs/
+run.sh
