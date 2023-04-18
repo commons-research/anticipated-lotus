@@ -2,17 +2,38 @@ import numpy as np
 import scipy.special 
 import itertools
 
-def update_mu(arrays):
-    # Create an iterator for every combination of values
-    combinations = itertools.product(*arrays)
+def mh_accept_mu(mu, mu_new, e, x):
+    # Calculate the log likelihood of the current and proposed values of the interaction matrix
+    curr_log_likelihood = log_likelihood_mu(mu=mu, e=e, x=x)
+    new_log_likelihood = log_likelihood_mu(mu=mu_new, e=e, x=x)
+
+    # Check if the log likelihoods are finite, and return False if any of them are not
+    if not (np.isfinite(curr_log_likelihood) and np.isfinite(new_log_likelihood)):
+        return False
+
+    # Calculate the log ratio of the new and current values of the interaction matrix
+    log_ratio = new_log_likelihood - curr_log_likelihood
+
+    # Accept the proposal with probability exp(min(0, log_ratio))
+    return np.random.uniform() < np.exp(min(0, log_ratio))
+
+def log_likelihood_mu(mu, e, x):
+    p_x_1_mu = scipy.special.expit(mu + e)
+    p_x_0_mu = 1-p_x_1_mu
     
-    # Sum the values in each combination and store in a list
-    sum_combinations = [np.sum(comb) for comb in combinations]
-    
-    # Convert the list to a numpy array with float32 dtype
-    sum_combinations = np.array(sum_combinations, dtype="float32").reshape([len(i) for i in arrays])
-    
-    return sum_combinations
+    likelihood_ = np.zeros(x.shape)
+    x_0 = np.where(x==0)
+    x_1 = np.where(x==1)
+    likelihood_[x_0] = p_x_0_mu[x_0]
+    likelihood_[x_1] = p_x_1_mu[x_1]
+    return np.sum(np.log(likelihood_ + 1e-12))
+
+def proposal_mu(x, proposal_scale=0.01):
+    return x + np.random.normal(loc=0, scale=proposal_scale)
+
+def update_mu(mu_arrays):
+    mu = np.sum(np.ix_(*mu_arrays), axis=0)
+    return mu
 
 def gibbs_sample_x(lotus_n_papers, mu, e, gamma, delta):
     #calculate prior
@@ -107,19 +128,24 @@ def metropolis_hastings_accept(lotus_n_papers, x, gamma, delta, gamma_new, delta
 
 # Define a function that runs the Metropolis-Hastings MCMC algorithm
 def run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter, gamma_init, delta_init,
-                        mu, e, target_acceptance_rate=(0.25, 0.35), check_interval=500):
+                        mu_arrays, e,
+                        target_acceptance_rate=(0.25, 0.35), check_interval=500):
     gamma, delta, x = gamma_init, delta_init, x_init
+    mu = update_mu(mu_arrays)
     
     # Initialize the samples array to store gamma and delta values
     samples = np.zeros((n_iter, 2))
     
     # Initialize a list to store x values at each iteration
     x_samples = []
+    mu_samples = []
 
     accept_gamma = 0
     accept_delta = 0
+    accept_mu = np.zeros(len(mu_arrays))
     proposal_scale_gamma = 0.1
     proposal_scale_delta = 0.01
+    proposal_scale_mu = 0.1
 
     for i in range(n_iter):
         # Update gamma
@@ -137,11 +163,25 @@ def run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter, gamma_init, delta_init,
         # Update x using Gibbs sampling
         x = gibbs_sample_x(lotus_n_papers, mu, e, gamma, delta)
         
+        for m in range(len(mu_arrays)):
+            for j in range(len(mu_arrays[m])):
+                mu_arrays_new = mu_arrays.copy()
+                mu_arrays_new[m] = mu_arrays[m].copy()
+                mu_arrays_new[m][j] = proposal_mu(mu_arrays[m][j], proposal_scale=proposal_scale_mu)
+                
+                #update mu
+                mu_new = update_mu(mu_arrays_new)
+                if mh_accept_mu(mu=mu, mu_new=mu_new, e=e, x=x):
+                    mu = mu_new
+                    mu_arrays[m][j] = mu_arrays_new[m][j]
+                    accept_mu[m] += 1
+        
         # Store gamma and delta values in the samples array
         samples[i] = [gamma, delta]
         
         # Append the current x value to the x_samples list
         x_samples.append(x)
+        mu_samples.append(mu_arrays)
 
         # Check acceptance rate and adjust proposal_scale if necessary
         if (i + 1) % check_interval == 0:
@@ -165,4 +205,11 @@ def run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter, gamma_init, delta_init,
             accept_gamma = 0
             accept_delta = 0
 
-    return samples, x_samples, acceptance_rate_gamma, acceptance_rate_delta
+            for m in range(len(mu_arrays)):
+                acceptance_rate_mu = accept_mu[m] / (check_interval * len(mu_arrays[m]))
+                if acceptance_rate_mu < target_acceptance_rate[0]:
+                    proposal_scale_mu *= 0.8
+                elif acceptance_rate_mu > target_acceptance_rate[1]:
+                    proposal_scale_mu *= 1.2
+                accept_mu[m] = 0
+    return samples, x_samples, mu_samples, acceptance_rate_gamma, acceptance_rate_delta
