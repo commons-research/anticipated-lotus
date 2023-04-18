@@ -33,15 +33,16 @@ prob_Lotus, n_papers, gamma, delta = compute_prob_L(x)
 lotus_binary, lotus_n_papers = simulate_lotus(prob_Lotus, n_papers)
 
 # Run the MCMC chain
-n_iter = 100000
+n_iter = 1000
 gamma_init = 1
 delta_init = 1
 x_init = np.zeros_like(lotus_binary, dtype=np.float64)
+mu_init = [np.zeros(n_t[0]), np.zeros(n_t[1])]
 print("Running MCMC")
-samples, x_samples, accept_gamma, accept_delta = run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter,
+samples, x_samples, mu_samples, accept_gamma, accept_delta = run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter,
                                                                      gamma_init, delta_init,
-                                                                     sum_mu.reshape(n_t),
-                                                                     epsilon_c.reshape(n_t))
+                                                                     mu_arrays=mu_init,
+                                                                     e=epsilon_c.reshape(n_t))
 
 burn_in = int(0.5 * n_iter)  # Remove the first 50% of the samples
 post_burn_in_samples = samples[burn_in:]
@@ -59,8 +60,19 @@ print("rate accept delta : ", accept_delta)
 
 print(np.corrcoef(x.flatten(), x_samples[-1].flatten()))
 
-#sns.set(style="darkgrid")
+true_mus = np.sum(np.ix_(*mu.values()),axis=0).flatten()
+test_mus = np.sum(np.ix_(*mu_samples[-1]), axis=0).flatten()
+
+print(np.corrcoef(true_mus, test_mus))
+
+sns.set(style="darkgrid")
 #fig, axs = plt.subplots(ncols=2)
+
+sns.scatterplot(x=[i for i in range(n_iter)],
+                y=[item[0][0] for item in mu_samples])
+sns.lineplot(x=[i for i in range(n_iter)],
+             y=[mu['m'][0] for i in range(n_iter)])
+
 #sns.scatterplot(x=range(len(post_burn_in_samples)),
 #                y = post_burn_in_samples[:,0],
 #                ax=axs[0]).set_title(f'True gamma : {gamma}')
@@ -76,4 +88,4 @@ print(np.corrcoef(x.flatten(), x_samples[-1].flatten()))
 #             y=[float(delta) for i in range(len(post_burn_in_samples[:,1]))],
 #             ax=axs[1],
 #             color='r')
-#plt.show()
+plt.show()
