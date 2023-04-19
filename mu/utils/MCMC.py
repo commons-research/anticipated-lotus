@@ -1,6 +1,5 @@
 import numpy as np
-import scipy.special 
-import itertools
+import scipy.special
 
 def mh_accept_mu(mu, mu_new, e, x):
     # Calculate the log likelihood of the current and proposed values of the interaction matrix
@@ -89,7 +88,7 @@ def log_likelihood(lotus_n_papers, x, gamma, delta):
     return log_likelihood
 
 # Define a function that calculates the log prior of the parameters gamma and delta
-def log_prior(gamma, delta, gamma_min=0, gamma_max=2, delta_min=0, delta_max=2):
+def log_prior(gamma, delta, gamma_min=0, gamma_max=10, delta_min=0, delta_max=10):
     # Return 0 if the parameters are within the specified bounds, and -inf otherwise
     if gamma_min <= gamma <= gamma_max and delta_min <= delta <= delta_max:
         return 0

@@ -33,11 +33,11 @@ prob_Lotus, n_papers, gamma, delta = compute_prob_L(x)
 lotus_binary, lotus_n_papers = simulate_lotus(prob_Lotus, n_papers)
 
 # Run the MCMC chain
-n_iter = 500
+n_iter = 10000
 gamma_init = 1
 delta_init = 1
 x_init = np.zeros_like(lotus_binary, dtype=np.float64)
-mu_init = [np.zeros(n_t[0]), np.zeros(n_t[1])]
+mu_init = [np.zeros(i) for i in n_t]
 print("Running MCMC")
 samples, x_samples, mu_samples, accept_gamma, accept_delta = run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter,
                                                                      gamma_init, delta_init,
@@ -51,6 +51,7 @@ post_burn_in_samples = samples[burn_in:]
 gamma_posterior_mean = np.mean(post_burn_in_samples[:, 0])
 delta_posterior_mean = np.mean(post_burn_in_samples[:, 1])
 
+print("N iterations : ", n_iter)
 print("True gamma: ", gamma)
 print("Estimated gamma: ", gamma_posterior_mean)
 print("True delta: ", delta)
@@ -65,27 +66,27 @@ test_mus = np.sum(np.ix_(*mu_samples[-1]), axis=0).flatten()
 
 print(np.corrcoef(true_mus, test_mus))
 
-#sns.set(style="darkgrid")
-#fig, axs = plt.subplots(ncols=2)
+sns.set(style="darkgrid")
+fig, axs = plt.subplots(ncols=2)
 
 #sns.scatterplot(x=[i for i in range(n_iter)],
 #                y=[item[0][0] for item in mu_samples])
 #sns.lineplot(x=[i for i in range(n_iter)],
 #             y=[mu['m'][0] for i in range(n_iter)])
 
-#sns.scatterplot(x=range(len(post_burn_in_samples)),
-#                y = post_burn_in_samples[:,0],
-#                ax=axs[0]).set_title(f'True gamma : {gamma}')
-#sns.lineplot(x=range(len(post_burn_in_samples)),
-#             y=[float(gamma) for i in range(len(post_burn_in_samples[:,0]))],
-#             ax=axs[0],
-#             color='r')
-#
-#sns.scatterplot(x=range(len(post_burn_in_samples)),
-#                y=post_burn_in_samples[:,1],
-#                ax=axs[1]).set_title(f'True delta : {delta}')
-#sns.lineplot(x=range(len(post_burn_in_samples)),
-#             y=[float(delta) for i in range(len(post_burn_in_samples[:,1]))],
-#             ax=axs[1],
-#             color='r')
-#plt.show()
+sns.scatterplot(x=range(len(post_burn_in_samples)),
+                y = post_burn_in_samples[:,0],
+                ax=axs[0]).set_title(f'True gamma : {gamma}')
+sns.lineplot(x=range(len(post_burn_in_samples)),
+             y=[float(gamma) for i in range(len(post_burn_in_samples[:,0]))],
+             ax=axs[0],
+             color='r')
+
+sns.scatterplot(x=range(len(post_burn_in_samples)),
+                y=post_burn_in_samples[:,1],
+                ax=axs[1]).set_title(f'True delta : {delta}')
+sns.lineplot(x=range(len(post_burn_in_samples)),
+             y=[float(delta) for i in range(len(post_burn_in_samples[:,1]))],
+             ax=axs[1],
+             color='r')
+plt.show()
