@@ -44,7 +44,7 @@ samples, x_samples, mu_samples, accept_gamma, accept_delta = run_mcmc_with_gibbs
                                                                      mu_arrays=mu_init,
                                                                      e=epsilon_c.reshape(n_t))
 
-burn_in = int(0.5 * n_iter)  # Remove the first 50% of the samples
+burn_in = int(0.5 * len(samples))  # Remove the first 50% of the samples
 post_burn_in_samples = samples[burn_in:]
 
 # Extract the posterior mean estimates for gamma and delta

@@ -128,12 +128,13 @@ def metropolis_hastings_accept(lotus_n_papers, x, gamma, delta, gamma_new, delta
 # Define a function that runs the Metropolis-Hastings MCMC algorithm
 def run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter, gamma_init, delta_init,
                         mu_arrays, e,
-                        target_acceptance_rate=(0.25, 0.35), check_interval=500):
+                        target_acceptance_rate=(0.25, 0.35), check_interval=500,thinning_factor=10):
     gamma, delta, x = gamma_init, delta_init, x_init
     mu = update_mu(mu_arrays)
     
     # Initialize the samples array to store gamma and delta values
-    samples = np.zeros((n_iter, 2))
+    samples = np.zeros((n_iter // thinning_factor, 2))
+    sample_count = 0
     
     # Initialize a list to store x values at each iteration
     x_samples = []
@@ -175,12 +176,14 @@ def run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter, gamma_init, delta_init,
                     mu_arrays[m][j] = mu_arrays_new[m][j]
                     accept_mu[m] += 1
         
-        # Store gamma and delta values in the samples array
-        samples[i] = [gamma, delta]
-        
-        # Append the current x value to the x_samples list
-        x_samples.append(x)
-        mu_samples.append(mu_arrays)
+        # Store gamma and delta values in the samples array if the current iteration is a multiple of the thinning factor
+        if (i + 1) % thinning_factor == 0:
+            samples[sample_count] = [gamma, delta]
+            sample_count += 1
+
+            # Append the current x value to the x_samples list
+            x_samples.append(x)
+            mu_samples.append(mu_arrays)
 
         # Check acceptance rate and adjust proposal_scale if necessary
         if (i + 1) % check_interval == 0:
