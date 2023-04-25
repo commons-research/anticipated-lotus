@@ -1,6 +1,6 @@
 .ipynb_checkpoints/*
 .DS_Store
-mu/utils/__pycache__/
+no_compartment/mu/utils/__pycache__/
 logs/
 run.sh
-x_gamma_delta/utils/__pycache__/
+no_compartment/x_gamma_delta/utils/__pycache__/
