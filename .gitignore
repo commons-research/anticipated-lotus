@@ -4,3 +4,4 @@ no_compartment/mu/utils/__pycache__/
 logs/
 run.sh
 no_compartment/x_gamma_delta/utils/__pycache__/
+compartment/utils/__pycache__/
