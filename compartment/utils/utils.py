@@ -14,12 +14,6 @@ def _create_blocks(t, n, block_count):
         blocks.append(block)
     return blocks
 
-def _find_block_idx(element_idx, block_indices):
-    for idx, (start, end) in enumerate(block_indices):
-        if start <= element_idx < end:
-            return idx
-    return -1
-
 def simulate_from_prior(T, n_t) -> any:
     mu = {T[i]: np.random.normal(loc=0, scale=1, size=n_t[i]).astype("float32") for i in range(len(T))}
     
@@ -39,29 +33,112 @@ def simulate_sigma_blocks(blocks):
                                  scale=1/np.prod(blocks)*np.eye(np.prod(blocks)),
                                  size=1).astype("float32")
 
-def are_elements_in_same_block(element1_idx, element2_idx, element3_idx, element4_idx, block_indices):
-    """
-    This function checks if two elements of the first array and two elements of the second array are in the same blocks.
+def compute_sum_of_mus(mu: dict) -> np.ndarray:
+    arrays = list(mu.values())
+
+    # Create an iterator for every combination of values
+    combinations = itertools.product(*arrays)
     
-    Parameters:
-    array1 (list): The first one-dimensional array.
-    array2 (list): The second one-dimensional array.
-    element1_idx (int): The index of the first element in array1.
-    element2_idx (int): The index of the second element in array1.
-    element3_idx (int): The index of the first element in array2.
-    element4_idx (int): The index of the second element in array2.
-    block_indices (list of tuples): List containing tuples with start and end indices of each block.
+    # Sum the values in each combination and store in a list
+    sum_combinations = [np.sum(comb) for comb in combinations]
+    
+    # Convert the list to a numpy array with float32 dtype
+    sum_combinations = np.array(sum_combinations, dtype="float32")
+    
+    return sum_combinations
 
-    Returns:
-    int: Returns 1 if all elements are in the same block, otherwise returns 0.
-    """
+def simulate_multivariate_normal_distribution(epsilon: np.ndarray) -> np.ndarray:
+    return np.random.multivariate_normal(mean=np.zeros(epsilon.shape[0]), cov=epsilon)
 
-    block1_idx = _find_block_idx(element1_idx, block_indices)
-    block2_idx = _find_block_idx(element2_idx, block_indices)
-    block3_idx = _find_block_idx(element3_idx, block_indices)
-    block4_idx = _find_block_idx(element4_idx, block_indices)
+def find_mu_blocks(mu_flat, blocks, original_shape):
+    block_rows, block_cols = blocks
+    row_size, col_size = original_shape
 
-    if block1_idx == block2_idx and block3_idx == block4_idx and block1_idx == block3_idx:
-        return True
-    else:
-        return False
+    rows_per_block = row_size // block_rows
+    cols_per_block = col_size // block_cols
+
+    mu_blocks = []
+
+    for index in range(mu_flat.size):
+        row = index // col_size
+        col = index % col_size
+
+        block_row = row // rows_per_block
+        block_col = col // cols_per_block
+
+        block_number = block_row * block_cols + block_col
+        mu_blocks.append(block_number)
+
+    return mu_blocks
+
+def find_corresponding_sigmas(mu_flat, blocks, original_shape, sigmas):
+    block_rows, block_cols = blocks
+    row_size, col_size = original_shape
+
+    rows_per_block = row_size // block_rows
+    cols_per_block = col_size // block_cols
+
+    corresponding_sigmas = []
+
+    for index in range(mu_flat.size):
+        row = index // col_size
+        col = index % col_size
+
+        block_row = row // rows_per_block
+        block_col = col // cols_per_block
+
+        block_number = block_row * block_cols + block_col
+
+        within_block_row = row % rows_per_block
+        within_block_col = col % cols_per_block
+        within_block_index = within_block_row * cols_per_block + within_block_col
+
+        corresponding_sigma = sigmas[block_number][within_block_index]
+        corresponding_sigmas.append(corresponding_sigma)
+
+    return corresponding_sigmas
+
+def compute_prob_X(sum_mus, sigmas, sigma_blocks, blocks, dim_size):
+    in_what_block_is_mu = find_mu_blocks(sum_mus, blocks, dim_size)
+    corresponding_sigmas = find_corresponding_sigmas(sum_mus, blocks, dim_size, sigmas)
+    result = np.empty(shape=sum_mus.size)
+    
+    for i in range(len(sum_mus)):
+        result[i] = sum_mus[i] + sigma_blocks[in_what_block_is_mu[i]] + corresponding_sigmas[i]
+
+    return scipy.special.expit(result.reshape(dim_size))
+
+def simulate_X(prob_x: np.ndarray) -> np.ndarray :
+    return np.random.binomial(n=1, p=prob_x, size=prob_x.shape).astype('uint8')
+
+#look at the condition in the model to calculate the proba of L_sm
+def compute_prob_L(x):
+    n_papers = 1 + np.random.poisson(lam=1, size=x.shape)
+    
+    #set presence or absence in nature
+    not_present_in_nature = np.where(x == 0)
+    present_in_x = np.where(x == 1)
+    
+    #change number of papers to 0 in the n_papers array if the entry is not present in nature
+    n_papers[not_present_in_nature] = 0
+
+    #generate gamma and delta, and calculate the 
+    gamma = np.random.exponential(scale=0.1, size=1)
+    delta = np.random.exponential(scale=0.01, size=1)
+    P_m = np.sum(n_papers, axis=1)
+    Q_s = np.sum(n_papers, axis=0)
+
+    R_ms = 1 - np.exp(-gamma * P_m[:, None] - delta * Q_s[None, :], dtype="float32")
+    prob_L = np.where(x == 1, R_ms, 0)
+    
+    return prob_L.astype("float32"), n_papers.astype('float32'), gamma, delta
+
+def simulate_lotus(prob_lotus: np.ndarray, n_papers) -> np.ndarray: 
+    Lotus_binary = np.random.binomial(n=1, p=prob_lotus, size=prob_lotus.shape).astype('uint8')
+
+    not_present_in_lotus = np.where(Lotus_binary == 0)
+    #Lotus_N_papers = np.zeros(Lotus_binary.shape)
+    Lotus_N_papers = n_papers
+    Lotus_N_papers[not_present_in_lotus] = 0
+    
+    return Lotus_binary, Lotus_N_papers.astype('int32')

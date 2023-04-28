@@ -53,15 +53,15 @@ def sigma_numba(cov_matrices:list, matrix_dims: np.ndarray, index_list: np.ndarr
         input_idx = index_list[i][:len(matrix_dims)]
         output_idx = index_list[i][len(matrix_dims):]
         
-        # Compute the sum using a loop instead of a generator expression
-        element_sum = 0
+        # Compute the product using a loop instead of a generator expression
+        element_prod = 1
         for j, matrix in enumerate(cov_matrices):
-            element_sum += matrix[input_idx[j], output_idx[j]]
+            element_prod *= matrix[input_idx[j], output_idx[j]]
         # Compute the linear index using the custom function
         input_linear_idx = ravel_multi_index(input_idx, matrix_dims)
         output_linear_idx = ravel_multi_index(output_idx, matrix_dims)
         
-        summed_matrix[input_linear_idx, output_linear_idx] = element_sum
+        summed_matrix[input_linear_idx, output_linear_idx] = element_prod
     
     return summed_matrix
 
