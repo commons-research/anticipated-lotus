@@ -35,7 +35,7 @@ prob_Lotus, n_papers, gamma, delta = compute_prob_L(x)
 lotus_binary, lotus_n_papers = simulate_lotus(prob_Lotus, n_papers)
 
 # Run the MCMC chain
-n_iter = 100000
+n_iter = 10000
 gamma_init = 1
 delta_init = 1
 x_init = np.zeros_like(lotus_binary, dtype=np.float64)
@@ -49,6 +49,9 @@ samples, x_samples, accept_gamma, accept_delta = run_mcmc_with_gibbs(lotus_n_pap
 
 burn_in = int(0.5 * n_iter)  # Remove the first 50% of the samples
 post_burn_in_samples = samples[burn_in:]
+x_samples_burn = x_samples[burn_in:]
+average_x = np.sum(x_samples_burn, axis=0)/burn_in
+#average_x = np.random.binomial(n=1, p=average_x)
 
 # Extract the posterior mean estimates for gamma and delta
 gamma_posterior_mean = np.mean(post_burn_in_samples[:, 0])
@@ -61,4 +64,4 @@ print("Estimated delta: ",delta_posterior_mean)
 print("rate accept gamma : ", accept_gamma)
 print("rate accept delta : ", accept_delta)
 
-print(np.corrcoef(x.flatten(), x_samples[-1].flatten()))
+print(np.corrcoef(x.flatten(), average_x.flatten()))
