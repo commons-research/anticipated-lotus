@@ -34,12 +34,15 @@ x = simulate_X(prob_X)
 prob_Lotus, n_papers, gamma, delta = compute_prob_L(x)
 lotus_binary, lotus_n_papers = simulate_lotus(prob_Lotus, n_papers)
 
+print(x)
+
 # Run the MCMC chain
-n_iter = 10000
+n_iter = 100000
 gamma_init = 1
 delta_init = 1
 x_init = np.zeros_like(lotus_binary, dtype=np.float64)
-print("Running MCMC")
+
+print("Running MCMC... ")
 samples, x_samples, accept_gamma, accept_delta = run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter,
                                                                      gamma_init, delta_init,
                                                                      sum_mus,

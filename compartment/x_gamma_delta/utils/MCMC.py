@@ -51,7 +51,7 @@ def log_likelihood(lotus_n_papers, x, gamma, delta):
     likelihood_ = likelihood(lotus_n_papers, x, gamma, delta)
     
     # Calculate the likelihood of observing the data
-    log_likelihood = np.sum(np.log(likelihood_ + 1e-12))
+    log_likelihood = np.sum(np.log(likelihood_ + 1e-18))
     return log_likelihood
 
 # Define a function that calculates the log prior of the parameters gamma and delta

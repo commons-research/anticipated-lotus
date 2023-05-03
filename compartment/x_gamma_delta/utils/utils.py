@@ -57,19 +57,13 @@ def find_mu_blocks(mu_flat, blocks, original_shape):
     rows_per_block = row_size // block_rows
     cols_per_block = col_size // block_cols
 
-    mu_blocks = []
+    row_indices, col_indices = np.unravel_index(np.arange(mu_flat.size), original_shape)
+    block_row_indices = row_indices // rows_per_block
+    block_col_indices = col_indices // cols_per_block
 
-    for index in range(mu_flat.size):
-        row = index // col_size
-        col = index % col_size
+    mu_blocks = block_row_indices * block_cols + block_col_indices
 
-        block_row = row // rows_per_block
-        block_col = col // cols_per_block
-
-        block_number = block_row * block_cols + block_col
-        mu_blocks.append(block_number)
-
-    return mu_blocks
+    return mu_blocks.tolist()
 
 def find_corresponding_sigmas(mu_flat, blocks, original_shape, sigmas):
     block_rows, block_cols = blocks
@@ -78,33 +72,25 @@ def find_corresponding_sigmas(mu_flat, blocks, original_shape, sigmas):
     rows_per_block = row_size // block_rows
     cols_per_block = col_size // block_cols
 
-    corresponding_sigmas = []
+    row_indices, col_indices = np.unravel_index(np.arange(mu_flat.size), original_shape)
+    block_row_indices = row_indices // rows_per_block
+    block_col_indices = col_indices // cols_per_block
+    within_block_row_indices = row_indices % rows_per_block
+    within_block_col_indices = col_indices % cols_per_block
 
-    for index in range(mu_flat.size):
-        row = index // col_size
-        col = index % col_size
+    block_numbers = block_row_indices * block_cols + block_col_indices
+    within_block_indices = within_block_row_indices * cols_per_block + within_block_col_indices
 
-        block_row = row // rows_per_block
-        block_col = col // cols_per_block
+    sigmas_array = np.array(sigmas)
+    corresponding_sigmas = sigmas_array[block_numbers, within_block_indices]
 
-        block_number = block_row * block_cols + block_col
-
-        within_block_row = row % rows_per_block
-        within_block_col = col % cols_per_block
-        within_block_index = within_block_row * cols_per_block + within_block_col
-
-        corresponding_sigma = sigmas[block_number][within_block_index]
-        corresponding_sigmas.append(corresponding_sigma)
-
-    return corresponding_sigmas
+    return corresponding_sigmas.tolist()
 
 def compute_prob_X(sum_mus, sigmas, sigma_blocks, blocks, dim_size):
-    in_what_block_is_mu = find_mu_blocks(sum_mus, blocks, dim_size)
-    corresponding_sigmas = find_corresponding_sigmas(sum_mus, blocks, dim_size, sigmas)
-    result = np.empty(shape=sum_mus.size)
+    in_what_block_is_mu = np.array(find_mu_blocks(sum_mus, blocks, dim_size))
+    corresponding_sigmas = np.array(find_corresponding_sigmas(sum_mus, blocks, dim_size, sigmas))
     
-    for i in range(len(sum_mus)):
-        result[i] = sum_mus[i] + sigma_blocks[in_what_block_is_mu[i]] + corresponding_sigmas[i]
+    result = sum_mus + np.array(sigma_blocks)[in_what_block_is_mu] + corresponding_sigmas
 
     return scipy.special.expit(result.reshape(dim_size))
 
