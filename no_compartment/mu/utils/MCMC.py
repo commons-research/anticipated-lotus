@@ -27,8 +27,8 @@ def log_likelihood_mu(mu, e, x):
     likelihood_[x_1] = p_x_1_mu[x_1]
     return np.sum(np.log(likelihood_ + 1e-12))
 
-def proposal_mu(x, proposal_scale=0.01):
-    return x + np.random.normal(loc=0, scale=proposal_scale)
+def proposal_mu(mu, proposal_scale=0.01):
+    return mu + np.random.normal(loc=0, scale=proposal_scale)
 
 def update_mu(mu_arrays):
     mu = np.sum(np.ix_(*mu_arrays), axis=0)
@@ -128,7 +128,7 @@ def metropolis_hastings_accept(lotus_n_papers, x, gamma, delta, gamma_new, delta
 # Define a function that runs the Metropolis-Hastings MCMC algorithm
 def run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter, gamma_init, delta_init,
                         mu_arrays, e,
-                        target_acceptance_rate=(0.25, 0.35), check_interval=500,thinning_factor=10):
+                        target_acceptance_rate=(0.25, 0.35), check_interval=500,thinning_factor=5):
     gamma, delta, x = gamma_init, delta_init, x_init
     mu = update_mu(mu_arrays)
     
@@ -148,6 +148,9 @@ def run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter, gamma_init, delta_init,
     proposal_scale_mu = 0.1
 
     for i in range(n_iter):
+        print_var = n_iter/10
+        if i % print_var == 0:
+            print("Done :", i/n_iter *100, "% of total iterations")
         # Update gamma
         gamma_new, _ = proposal(gamma, delta, proposal_scale_gamma, proposal_scale_delta)
         if metropolis_hastings_accept(lotus_n_papers, x, gamma, delta, gamma_new, delta):
@@ -161,7 +164,7 @@ def run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter, gamma_init, delta_init,
             accept_delta += 1
         
         # Update x using Gibbs sampling
-        x = gibbs_sample_x(lotus_n_papers, mu, e, gamma, delta)
+        #x = gibbs_sample_x(lotus_n_papers, mu, e, gamma, delta)
         
         for m in range(len(mu_arrays)):
             for j in range(len(mu_arrays[m])):

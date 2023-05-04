@@ -33,12 +33,14 @@ prob_Lotus, n_papers, gamma, delta = compute_prob_L(x)
 lotus_binary, lotus_n_papers = simulate_lotus(prob_Lotus, n_papers)
 
 # Run the MCMC chain
-n_iter = 10000
+n_iter = 20000
 gamma_init = 1
 delta_init = 1
-x_init = np.zeros_like(lotus_binary, dtype=np.float64)
+#x_init = np.zeros_like(lotus_binary, dtype=np.float64)
+x_init = x
 mu_init = [np.zeros(i) for i in n_t]
 print("Running MCMC")
+print("N iterations : ", n_iter)
 samples, x_samples, mu_samples, accept_gamma, accept_delta = run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter,
                                                                      gamma_init, delta_init,
                                                                      mu_arrays=mu_init,
@@ -51,7 +53,6 @@ post_burn_in_samples = samples[burn_in:]
 gamma_posterior_mean = np.mean(post_burn_in_samples[:, 0])
 delta_posterior_mean = np.mean(post_burn_in_samples[:, 1])
 
-print("N iterations : ", n_iter)
 print("True gamma: ", gamma)
 print("Estimated gamma: ", gamma_posterior_mean)
 print("True delta: ", delta)
@@ -59,12 +60,21 @@ print("Estimated delta: ",delta_posterior_mean)
 print("rate accept gamma : ", accept_gamma)
 print("rate accept delta : ", accept_delta)
 
-print(np.corrcoef(x.flatten(), x_samples[-1].flatten()))
+#check correlation of x (should be 1 if x is fixed, check in the MCMC file)
+x_samples_burn = x_samples[burn_in:]
+average_x = np.sum(x_samples_burn, axis=0)/burn_in
+print(np.corrcoef(x.flatten(), average_x.flatten()))
 
-true_mus = np.sum(np.ix_(*mu.values()),axis=0).flatten()
-test_mus = np.sum(np.ix_(*mu_samples[-1]), axis=0).flatten()
 
-print(np.corrcoef(true_mus, test_mus))
+mu_samples_burn = mu_samples[burn_in:]
+average_estimations = {}
+for key in mu:
+    key_index = list(mu.keys()).index(key)
+    key_estimations = [estimation[key_index] for estimation in mu_samples_burn]
+    key_avg = np.mean(key_estimations, axis=0)
+    average_estimations[key] = key_avg
+    print(f"Correlation mu '{key}' : ", np.corrcoef(mu[key], average_estimations[key]))
+
 
 sns.set(style="darkgrid")
 fig, axs = plt.subplots(ncols=2)
