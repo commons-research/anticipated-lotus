@@ -39,7 +39,7 @@ n_iter = 100000
 gamma_init = 1
 delta_init = 1
 x_init = np.zeros_like(lotus_binary, dtype=np.float64)
-
+#x_init = x
 print("Running MCMC... ")
 samples, x_samples, accept_gamma, accept_delta = run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter,
                                                                      gamma_init, delta_init,
@@ -52,7 +52,6 @@ burn_in = int(0.5 * n_iter)  # Remove the first 50% of the samples
 post_burn_in_samples = samples[burn_in:]
 x_samples_burn = x_samples[burn_in:]
 average_x = np.sum(x_samples_burn, axis=0)/burn_in
-#average_x = np.random.binomial(n=1, p=average_x)
 
 # Extract the posterior mean estimates for gamma and delta
 gamma_posterior_mean = np.mean(post_burn_in_samples[:, 0])
@@ -66,3 +65,22 @@ print("rate accept gamma : ", accept_gamma)
 print("rate accept delta : ", accept_delta)
 
 print(np.corrcoef(x.flatten(), average_x.flatten()))
+
+sns.set(style="darkgrid")
+fig, axs = plt.subplots(ncols=2)
+sns.scatterplot(x=range(len(post_burn_in_samples)),
+                y = post_burn_in_samples[:,0],
+                ax=axs[0]).set_title(f'True gamma : {gamma}')
+sns.lineplot(x=range(len(post_burn_in_samples)),
+             y=[float(gamma) for i in range(len(post_burn_in_samples[:,0]))],
+             ax=axs[0],
+             color='r')
+
+sns.scatterplot(x=range(len(post_burn_in_samples)),
+                y=post_burn_in_samples[:,1],
+                ax=axs[1]).set_title(f'True delta : {delta}')
+sns.lineplot(x=range(len(post_burn_in_samples)),
+             y=[float(delta) for i in range(len(post_burn_in_samples[:,1]))],
+             ax=axs[1],
+             color='r')
+plt.show()

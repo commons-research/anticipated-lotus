@@ -77,8 +77,11 @@ def run_mcmc(lotus_n_papers, x, n_iter, gamma_init, delta_init, target_acceptanc
     accept_delta = 0
     proposal_scale_gamma = 0.1
     proposal_scale_delta = 0.01
-
+    print_var = n_iter/10
+    
     for i in range(n_iter):
+        if i % print_var == 0:
+            print("Done :", i/n_iter *100, "% of total iterations")
         # Update gamma
         gamma_new, _ = proposal(gamma, delta, proposal_scale_gamma, proposal_scale_delta)
         if metropolis_hastings_accept(lotus_n_papers, x, gamma, delta, gamma_new, delta):
