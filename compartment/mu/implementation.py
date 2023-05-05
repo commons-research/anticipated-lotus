@@ -36,23 +36,23 @@ prob_Lotus, n_papers, gamma, delta = compute_prob_L(x)
 lotus_binary, lotus_n_papers = simulate_lotus(prob_Lotus, n_papers)
 
 # Run the MCMC chain
-n_iter = 20000
+n_iter = 10000
 gamma_init = 1
 delta_init = 1
-x_init = np.zeros_like(lotus_binary, dtype=np.float64)
-#x_init = x
-print("Running MCMC... ")
-samples, x_samples, accept_gamma, accept_delta = run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter,
+#x_init = np.zeros_like(lotus_binary, dtype=np.float64)
+x_init = x
+mu_init = [np.zeros(i) for i in n_t]
+print("Running MCMC")
+print("N iterations : ", n_iter)
+samples, x_samples, mu_samples, accept_gamma, accept_delta = run_mcmc_with_gibbs(lotus_n_papers, x_init, n_iter,
                                                                      gamma_init, delta_init,
-                                                                     sum_mus,
+                                                                     mu_init,
                                                                      epsilon_c_multivar,
                                                                      sigma_blocks_multivar,
                                                                      blocks)
 
-burn_in = int(0.5 * n_iter)  # Remove the first 50% of the samples
+burn_in = int(0.5 * len(samples))  # Remove the first 50% of the samples
 post_burn_in_samples = samples[burn_in:]
-x_samples_burn = x_samples[burn_in:]
-average_x = np.sum(x_samples_burn, axis=0)/burn_in
 
 # Extract the posterior mean estimates for gamma and delta
 gamma_posterior_mean = np.mean(post_burn_in_samples[:, 0])
@@ -65,23 +65,43 @@ print("Estimated delta: ",delta_posterior_mean)
 print("rate accept gamma : ", accept_gamma)
 print("rate accept delta : ", accept_delta)
 
+#check correlation of x (should be 1 if x is fixed, check in the MCMC file)
+x_samples_burn = x_samples[burn_in:]
+average_x = np.sum(x_samples_burn, axis=0)/burn_in
 print(np.corrcoef(x.flatten(), average_x.flatten()))
+
+
+mu_samples_burn = mu_samples[burn_in:]
+average_estimations = {}
+for key in mu:
+    key_index = list(mu.keys()).index(key)
+    key_estimations = [estimation[key_index] for estimation in mu_samples_burn]
+    key_avg = np.mean(key_estimations, axis=0)
+    average_estimations[key] = key_avg
+    print(f"Correlation mu '{key}' : ", np.corrcoef(mu[key], average_estimations[key]))
+
 
 sns.set(style="darkgrid")
 fig, axs = plt.subplots(ncols=2)
-sns.scatterplot(x=range(len(post_burn_in_samples)),
-                y = post_burn_in_samples[:,0],
-                ax=axs[0]).set_title(f'True gamma : {gamma}')
-sns.lineplot(x=range(len(post_burn_in_samples)),
-             y=[float(gamma) for i in range(len(post_burn_in_samples[:,0]))],
-             ax=axs[0],
-             color='r')
 
-sns.scatterplot(x=range(len(post_burn_in_samples)),
-                y=post_burn_in_samples[:,1],
-                ax=axs[1]).set_title(f'True delta : {delta}')
-sns.lineplot(x=range(len(post_burn_in_samples)),
-             y=[float(delta) for i in range(len(post_burn_in_samples[:,1]))],
-             ax=axs[1],
-             color='r')
-plt.show()
+#sns.scatterplot(x=[i for i in range(n_iter)],
+#                y=[item[0][0] for item in mu_samples])
+#sns.lineplot(x=[i for i in range(n_iter)],
+#             y=[mu['m'][0] for i in range(n_iter)])
+
+#sns.scatterplot(x=range(len(post_burn_in_samples)),
+#                y = post_burn_in_samples[:,0],
+#                ax=axs[0]).set_title(f'True gamma : {gamma}')
+#sns.lineplot(x=range(len(post_burn_in_samples)),
+#             y=[float(gamma) for i in range(len(post_burn_in_samples[:,0]))],
+#             ax=axs[0],
+#             color='r')
+#
+#sns.scatterplot(x=range(len(post_burn_in_samples)),
+#                y=post_burn_in_samples[:,1],
+#                ax=axs[1]).set_title(f'True delta : {delta}')
+#sns.lineplot(x=range(len(post_burn_in_samples)),
+#             y=[float(delta) for i in range(len(post_burn_in_samples[:,1]))],
+#             ax=axs[1],
+#             color='r')
+#plt.show()
