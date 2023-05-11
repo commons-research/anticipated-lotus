@@ -37,10 +37,10 @@ lotus_binary, lotus_n_papers = simulate_lotus(prob_Lotus, n_papers)
 
 # Run the MCMC chain
 n_iter = 10000
-gamma_init = 1
-delta_init = 1
-#x_init = np.zeros_like(lotus_binary, dtype=np.float64)
-x_init = x
+gamma_init = 0.0
+delta_init = 0.0
+x_init = np.zeros_like(lotus_binary, dtype=np.float64)
+#x_init = x
 mu_init = [np.zeros(i) for i in n_t]
 print("Running MCMC")
 print("N iterations : ", n_iter)
