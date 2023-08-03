@@ -36,7 +36,7 @@ lotus_binary, lotus_n_papers = simulate_lotus(prob_Lotus, n_papers)
 
 print("Running MCMC...")
 # Run the MCMC chain
-n_iter = 100000
+n_iter = 10000
 gamma_init = 1
 delta_init = 1
 #samples, accept_gamma, accept_delta = utils.MCMC.run_mcmc(lotus_n_papers, x, n_iter, gamma_init, delta_init)
