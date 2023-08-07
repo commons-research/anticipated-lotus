@@ -8,3 +8,5 @@ compartment/utils/__pycache__/
 compartment/x_gamma_delta/utils/__pycache__/
 compartment/gamma_delta/utils/__pycache__/*
 no_compartment/gamma_delta/utils/__pycache__/
+../mu/utils/__pycache__/
+compartment/mu/utils/__pycache__/
