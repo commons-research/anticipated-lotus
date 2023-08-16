@@ -7,7 +7,7 @@ using Statistics, LinearAlgebra, Plots
 
 # Initialize size of simulated data
 T = ["m", "s"]
-n_t = [100, 10]
+n_t = [100, 26]
 blocks = [4, 2]
 @assert length(T) == length(n_t)
 @assert length(n_t) == length(blocks)
@@ -33,7 +33,7 @@ prob_Lotus, n_papers, gamma, delta = compute_prob_L(x)
 lotus_binary, lotus_n_papers = simulate_lotus(prob_Lotus, n_papers)
 
 # Run the MCMC chain
-n_iter = 100000
+n_iter = 20000
 gamma_init = 1.0
 delta_init = 1.0
 x_init = zeros(size(lotus_binary))
